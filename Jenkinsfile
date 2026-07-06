@@ -66,9 +66,9 @@ pipeline {
                     )
                 ]) {
                     bat '''
-                    @echo off
-                    echo %dckr_pat_hMWrpFDPbzskTa25-w9xNF6rx9w% | docker login -u %tamilselvan2206% --password-stdin
-                    '''
+@echo off
+docker login -u "%DOCKER_USER%" -p "%DOCKER_PASS%"
+'''
                 }
             }
         }
