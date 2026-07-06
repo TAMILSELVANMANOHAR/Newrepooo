@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "tamilselvan2206/simple-node-app"
-        IMAGE_TAG  = "${BUILD_NUMBER}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     triggers {
@@ -30,7 +30,12 @@ pipeline {
                     def scannerHome = tool 'SonarScanner'
 
                     withSonarQubeEnv('SonarQube-Server') {
-                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\" -Dsonar.projectKey=node-app -Dsonar.sources=."
+                        bat """
+                        "${scannerHome}\\bin\\sonar-scanner.bat" ^
+                        -Dsonar.projectKey=node-app ^
+                        -Dsonar.sources=. ^
+                        -Dsonar.exclusions=node_modules/**
+                        """
                     }
                 }
             }
@@ -46,8 +51,8 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
-                bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
+                bat 'docker build -t %IMAGE_NAME%:%IMAGE_TAG% .'
+                bat 'docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest'
             }
         }
 
@@ -60,15 +65,18 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                    bat '''
+                    @echo off
+                    echo %dckr_pat_hMWrpFDPbzskTa25-w9xNF6rx9w% | docker login -u %tamilselvan2206% --password-stdin
+                    '''
                 }
             }
         }
 
         stage('Docker Push') {
             steps {
-                bat "docker push %IMAGE_NAME%:%IMAGE_TAG%"
-                bat "docker push %IMAGE_NAME%:latest"
+                bat 'docker push %IMAGE_NAME%:%IMAGE_TAG%'
+                bat 'docker push %IMAGE_NAME%:latest'
             }
         }
 
@@ -76,13 +84,14 @@ pipeline {
             steps {
                 bat 'docker stop node-app-instance || exit /b 0'
                 bat 'docker rm node-app-instance || exit /b 0'
-                bat 'docker run -d -p 3000:3000 --name node-app-instance %IMAGE_NAME%:latest'
+                bat 'docker run -d --name node-app-instance -p 3000:3000 %IMAGE_NAME%:latest'
             }
         }
     }
 
     post {
         always {
+            bat 'docker logout || exit /b 0'
             bat 'docker rmi %IMAGE_NAME%:%IMAGE_TAG% || exit /b 0'
             bat 'docker rmi %IMAGE_NAME%:latest || exit /b 0'
             cleanWs()
