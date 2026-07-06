@@ -32,8 +32,12 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube-Server') {
-                    bat 'sonar-scanner -Dsonar.projectKey=node-app -Dsonar.sources=.'
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('SonarQube-Server') {
+                        bat "\"${scannerHome}\\bin\\sonar-scanner.bat\" -Dsonar.projectKey=node-app -Dsonar.sources=."
+                    }
                 }
             }
         }
@@ -76,8 +80,8 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                bat 'docker stop node-app-instance'
-                bat 'docker rm node-app-instance'
+                bat 'docker stop node-app-instance || exit /b 0'
+                bat 'docker rm node-app-instance || exit /b 0'
                 bat 'docker run -d -p 3000:3000 --name node-app-instance %IMAGE_NAME%:latest'
             }
         }
@@ -85,8 +89,8 @@ pipeline {
 
     post {
         always {
-            bat 'docker rmi %IMAGE_NAME%:%IMAGE_TAG%'
-            bat 'docker rmi %IMAGE_NAME%:latest'
+            bat 'docker rmi %IMAGE_NAME%:%IMAGE_TAG% || exit /b 0'
+            bat 'docker rmi %IMAGE_NAME%:latest || exit /b 0'
             cleanWs()
         }
     }
